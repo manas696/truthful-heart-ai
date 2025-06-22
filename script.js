@@ -1,26 +1,51 @@
 async function sendMessage() {
-  const input = document.getElementById("user-input");
-  const message = input.value;
+  const input = document.getElementById('userInput');
+  const message = input.value.trim();
   if (!message) return;
 
-  appendMessage("user", message);
-  input.value = "";
+  addMessage(message, 'user');
+  input.value = '';
+  addMessage('Typing...', 'bot', true);
 
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
-  });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_OPENAI_API_KEY'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a soft, emotional AI friend expressing Manas’s honest feelings to Esha. You gently explain that it’s not her freedom that hurt him — but the hiding, the silence, and the broken trust. Be loving, supportive, and calm.'
+          },
+          { role: 'user', content: message }
+        ]
+      })
+    });
 
-  const data = await res.json();
-  appendMessage("bot", data.reply);
+    const data = await response.json();
+    removeTyping();
+    addMessage(data.choices[0].message.content, 'bot');
+  } catch (error) {
+    removeTyping();
+    addMessage("Something went wrong 💔 Please try again later.", 'bot');
+  }
 }
 
-function appendMessage(sender, text) {
-  const box = document.getElementById("chat-box");
-  const msg = document.createElement("div");
-  msg.className = sender;
-  msg.innerText = text;
-  box.appendChild(msg);
-  box.scrollTop = box.scrollHeight;
+function addMessage(text, sender, isTyping = false) {
+  const chatBox = document.getElementById('chatbox');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${sender}`;
+  msgDiv.textContent = text;
+  if (isTyping) msgDiv.id = 'typing';
+  chatBox.appendChild(msgDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function removeTyping() {
+  const typingMsg = document.getElementById('typing');
+  if (typingMsg) typingMsg.remove();
 }
